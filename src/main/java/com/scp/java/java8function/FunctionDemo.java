@@ -11,6 +11,6 @@ public static void main(String[] args) {
 Function<String, String> func1ToUppercase= s-> s.toUpperCase();
 // use method references instead of lambda expression 
 Function<String, String> convertedToUppercase=String::toUpperCase;
-System.out.println(convertedToUppercase.apply("Manisha Hambir"));//user name-ManishaHambir-code//maniSha@123
+System.out.println(convertedToUppercase.apply("Manisha Hambir"));
 }
 }
