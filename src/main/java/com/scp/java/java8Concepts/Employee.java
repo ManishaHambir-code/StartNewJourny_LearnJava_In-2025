@@ -77,7 +77,7 @@ public static void main(String[] args) {
 	System.out.println("==========================");
 	//toUnmodifiableSet() works similar to the toSet() but this set can not be modified
 	
-	Set<Double> unmodifiableSet=employeeList.stream().map(e -> e.getSalary()).collect(Collectors.toUnmodifiableSet());
+	Set<Double> unmodifiableSet=java.util.Collections.unmodifiableSet(employeeList.stream().map(e -> e.getSalary()).collect(Collectors.toSet()));
 	System.out.println(unmodifiableSet);
 	}
 }
