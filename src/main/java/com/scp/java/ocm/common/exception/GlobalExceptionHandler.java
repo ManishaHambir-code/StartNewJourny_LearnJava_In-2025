@@ -1,5 +1,7 @@
 package com.scp.java.ocm.common.exception;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.scp.java.ocm.common.dto.ApiErrorResponse;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -67,6 +69,12 @@ public class GlobalExceptionHandler {
         MissingServletRequestParameterException.class
     })
     public ResponseEntity<ApiErrorResponse> malformed(Exception ex, HttpServletRequest req) {
+        if (ex instanceof HttpMessageNotReadableException) {
+            InvalidFormatException invalidFormat = findInvalidFormat((Throwable) ex);
+            if (invalidFormat != null) {
+                return invalidRequestField(invalidFormat, req);
+            }
+        }
         String message = "Request body is missing or malformed";
         if (ex instanceof MethodArgumentTypeMismatchException) {
             message =
@@ -80,6 +88,59 @@ public class GlobalExceptionHandler {
                             + "'";
         }
         return build(HttpStatus.BAD_REQUEST, message, req);
+    }
+
+    private InvalidFormatException findInvalidFormat(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            if (current instanceof InvalidFormatException) {
+                return (InvalidFormatException) current;
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private ResponseEntity<ApiErrorResponse> invalidRequestField(
+            InvalidFormatException ex, HttpServletRequest req) {
+        String field = null;
+        for (JsonMappingException.Reference reference : ex.getPath()) {
+            if (reference.getFieldName() != null) {
+                field = reference.getFieldName();
+            }
+        }
+        if (field == null) {
+            return build(HttpStatus.BAD_REQUEST, "Request body is missing or malformed", req);
+        }
+
+        Class<?> targetType = ex.getTargetType();
+        String typeName = targetType == null ? "requested type" : targetType.getSimpleName();
+        StringBuilder detail =
+                new StringBuilder("Invalid value '")
+                        .append(String.valueOf(ex.getValue()))
+                        .append("' for type ")
+                        .append(typeName);
+        if (targetType != null && targetType.isEnum()) {
+            Object[] values = targetType.getEnumConstants();
+            detail.append(". Allowed values: ");
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0) {
+                    detail.append(", ");
+                }
+                detail.append(values[i]);
+            }
+        }
+
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        errors.put(field, detail.toString());
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400,
+                                "Bad Request",
+                                "Invalid value for request field",
+                                req.getRequestURI(),
+                                errors));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
