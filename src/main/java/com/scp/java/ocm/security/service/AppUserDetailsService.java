@@ -1,11 +1,10 @@
 package com.scp.java.ocm.security.service;
 
+import com.scp.java.ocm.security.repository.AppUserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import com.scp.java.ocm.security.repository.AppUserRepository;
 
 @Service
 public class AppUserDetailsService implements UserDetailsService {
@@ -17,7 +16,8 @@ public class AppUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return repository.findByUsernameIgnoreCase(username)
+        return repository
+                .findByUsernameIgnoreCase(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

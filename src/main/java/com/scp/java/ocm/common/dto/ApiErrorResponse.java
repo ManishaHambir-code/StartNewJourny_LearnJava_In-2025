@@ -1,11 +1,9 @@
 package com.scp.java.ocm.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
-
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import lombok.Getter;
 
 @Getter
@@ -22,7 +20,8 @@ public class ApiErrorResponse {
         this(status, error, message, path, Collections.<String, String>emptyMap());
     }
 
-    public ApiErrorResponse(int status, String error, String message, String path, Map<String, String> fieldErrors) {
+    public ApiErrorResponse(
+            int status, String error, String message, String path, Map<String, String> fieldErrors) {
         this.status = status;
         this.error = error;
         this.message = message;

@@ -1,10 +1,8 @@
 package com.scp.java.ocm.common.dto;
 
 import java.util.List;
-
-import org.springframework.data.domain.Page;
-
 import lombok.Getter;
+import org.springframework.data.domain.Page;
 
 @Getter
 public class PageResponse<T> {
@@ -15,7 +13,8 @@ public class PageResponse<T> {
     private final int totalPages;
     private final boolean last;
 
-    public PageResponse(List<T> content, int page, int size, long totalElements, int totalPages, boolean last) {
+    public PageResponse(
+            List<T> content, int page, int size, long totalElements, int totalPages, boolean last) {
         this.content = content;
         this.page = page;
         this.size = size;
@@ -25,7 +24,12 @@ public class PageResponse<T> {
     }
 
     public static <T> PageResponse<T> of(Page<T> page) {
-        return new PageResponse<T>(page.getContent(), page.getNumber(), page.getSize(), page.getTotalElements(),
-                page.getTotalPages(), page.isLast());
+        return new PageResponse<T>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast());
     }
 }

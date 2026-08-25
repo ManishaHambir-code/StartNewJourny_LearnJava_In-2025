@@ -8,6 +8,8 @@ import com.scp.java.ocm.security.entity.AppUser;
 
 public interface AuthService {
     LoginResponse login(LoginRequest request);
+
     UserResponse register(RegisterUserRequest request);
+
     AppUser currentUser(String username);
 }

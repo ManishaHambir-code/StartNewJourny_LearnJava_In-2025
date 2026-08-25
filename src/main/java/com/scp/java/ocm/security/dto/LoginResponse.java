@@ -1,7 +1,6 @@
 package com.scp.java.ocm.security.dto;
 
 import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

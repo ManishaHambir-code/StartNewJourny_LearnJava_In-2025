@@ -26,6 +26,7 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: root
       OCM_KAFKA_ENABLED: "${OCM_KAFKA_ENABLED:-false}"
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8080:8080"
   zookeeper:
@@ -43,7 +44,5 @@ services:
       ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-  # Enable this override when running --profile kafka.
-  # The API remains broker-free by default via OCM_KAFKA_ENABLED=false.
 volumes:
   ocm_mysql_data:

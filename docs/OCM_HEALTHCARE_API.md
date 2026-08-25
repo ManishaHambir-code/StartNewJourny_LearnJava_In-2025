@@ -60,8 +60,13 @@ docker compose up
 OCM_KAFKA_ENABLED=true docker compose --profile kafka up
 ```
 
-Kafka is disabled by default. Enable it with `OCM_KAFKA_ENABLED=true` and set
-`KAFKA_BOOTSTRAP_SERVERS=kafka:9092`.
+Kafka is disabled by default. Start the Kafka profile with:
+
+```bash
+OCM_KAFKA_ENABLED=true docker compose --profile kafka up
+```
+
+The compose configuration provides `KAFKA_BOOTSTRAP_SERVERS=kafka:9092`.
 
 ## Authentication
 
@@ -98,6 +103,11 @@ All endpoints use `/api/v1`.
 
 List endpoints support `page`, `size`, `sort=field,dir`, and their documented
 domain filters. Sizes are 1–100 and default to 20.
+Unknown sort fields return `400 Bad Request`.
+
+Member status is changed only through `PATCH /members/{id}/status`. The
+`status` property in `MemberRequest` is ignored on both create and update;
+new members always start as `ACTIVE`, and updates preserve the current status.
 
 ## Validation and business rules
 
@@ -127,8 +137,8 @@ Validation errors add a non-empty `fieldErrors` map. Status codes are:
 
 | Status | Meaning |
 | --- | --- |
-| 400 | Malformed request or validation failure |
-| 401 | Missing, invalid or expired JWT |
+| 400 | Malformed request, validation failure, or unknown sort field |
+| 401 | Missing, invalid or expired JWT, or invalid login credentials |
 | 403 | Authenticated user lacks required role |
 | 404 | Resource not found |
 | 409 | Duplicate resource |
@@ -143,5 +153,6 @@ default broker-free publisher. The Kafka publisher is selected only when
 `ocm.kafka.enabled=true`, with aggregate-specific topics configured through
 `ocm.kafka.topics.*`.
 
-Swagger UI: <http://localhost:8080/swagger-ui.html>  
+Swagger UI entry point: <http://localhost:8080/swagger-ui.html> (redirects with
+`302` to the UI resource, which is reachable with `200`)
 OpenAPI JSON: <http://localhost:8080/v3/api-docs>

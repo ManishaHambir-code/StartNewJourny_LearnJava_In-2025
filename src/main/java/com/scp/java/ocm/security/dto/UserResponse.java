@@ -1,10 +1,8 @@
 package com.scp.java.ocm.security.dto;
 
-import java.util.Set;
-
 import com.scp.java.ocm.security.entity.AppUser;
 import com.scp.java.ocm.security.entity.Role;
-
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -18,7 +16,7 @@ public class UserResponse {
     private boolean enabled;
 
     public static UserResponse from(AppUser user) {
-        return new UserResponse(user.getId(), user.getUsername(), user.getFullName(), user.getRoles(),
-                user.isEnabled());
+        return new UserResponse(
+                user.getId(), user.getUsername(), user.getFullName(), user.getRoles(), user.isEnabled());
     }
 }

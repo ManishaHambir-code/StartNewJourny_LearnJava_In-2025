@@ -3,7 +3,6 @@ package com.scp.java.ocm.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -19,13 +18,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
-@ConditionalOnBean(UserDetailsService.class)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private final UserDetailsService userDetailsService;
     private final JwtTokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(UserDetailsService userDetailsService, JwtTokenProvider tokenProvider,
+    public SecurityConfig(
+            UserDetailsService userDetailsService,
+            JwtTokenProvider tokenProvider,
             ObjectMapper objectMapper) {
         this.userDetailsService = userDetailsService;
         this.tokenProvider = tokenProvider;
@@ -50,12 +50,28 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .exceptionHandling().authenticationEntryPoint(new RestAuthenticationEntryPoint(objectMapper))
-                .accessDeniedHandler(new RestAccessDeniedHandler(objectMapper)).and().authorizeRequests()
-                .antMatchers("/api/v1/auth/login", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
-                        "/actuator/health").permitAll().anyRequest().authenticated().and()
-                .addFilterBefore(new JwtAuthenticationFilter(tokenProvider, userDetailsService),
+        http.csrf()
+                .disable()
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                .exceptionHandling()
+                .authenticationEntryPoint(new RestAuthenticationEntryPoint(objectMapper))
+                .accessDeniedHandler(new RestAccessDeniedHandler(objectMapper))
+                .and()
+                .authorizeRequests()
+                .antMatchers(
+                        "/api/v1/auth/login",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/actuator/health")
+                .permitAll()
+                .anyRequest()
+                .authenticated()
+                .and()
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(tokenProvider, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class);
     }
 }

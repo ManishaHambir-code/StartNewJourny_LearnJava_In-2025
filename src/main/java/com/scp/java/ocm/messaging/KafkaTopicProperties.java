@@ -1,9 +1,8 @@
 package com.scp.java.ocm.messaging;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Getter
 @Setter
