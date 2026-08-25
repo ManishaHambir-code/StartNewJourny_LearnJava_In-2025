@@ -1,0 +1,30 @@
+package com.scp.java.ocm.security;
+
+import java.io.IOException;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.access.AccessDeniedHandler;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.scp.java.ocm.common.dto.ApiErrorResponse;
+
+public class RestAccessDeniedHandler implements AccessDeniedHandler {
+    private final ObjectMapper mapper;
+
+    public RestAccessDeniedHandler(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
+
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException ex)
+            throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        mapper.writeValue(response.getOutputStream(), new ApiErrorResponse(403, "Forbidden",
+                "You do not have permission to access this resource", request.getRequestURI()));
+    }
+}
