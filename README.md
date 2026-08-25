@@ -1,3 +1,8 @@
+# Projects in this repository
+
+- [Employee Management REST API](#employee-management-rest-api)
+- [OCM Healthcare Management API](docs/OCM_HEALTHCARE_API.md)
+
 # Employee Management REST API
 
 Spring Boot REST API for managing employees, built with a clean layered architecture
@@ -145,3 +150,6 @@ curl -X DELETE http://localhost:8080/api/employees/1
 - `EmployeeControllerTest` — `@WebMvcTest` slice covering status codes, JSON payloads and error responses
 
 No database is needed to run the tests.
+
+The employee app remains runnable with
+`-Dspring-boot.run.main-class=com.scp.java.employee.EmployeeManagementApplication`.

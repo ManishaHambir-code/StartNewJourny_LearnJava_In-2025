@@ -1,0 +1,220 @@
+package com.scp.java.ocm.common.exception;
+
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.scp.java.ocm.common.dto.ApiErrorResponse;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> notFound(
+            ResourceNotFoundException ex, HttpServletRequest req) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<ApiErrorResponse> duplicate(
+            DuplicateResourceException ex, HttpServletRequest req) {
+        return build(HttpStatus.CONFLICT, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(BusinessRuleViolationException.class)
+    public ResponseEntity<ApiErrorResponse> rule(
+            BusinessRuleViolationException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), req);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiErrorResponse> validation(
+            MethodArgumentNotValidException ex, HttpServletRequest req) {
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        for (FieldError field : ex.getBindingResult().getFieldErrors()) {
+            errors.put(field.getField(), field.getDefaultMessage());
+        }
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400,
+                                "Bad Request",
+                                "Validation failed for request payload",
+                                req.getRequestURI(),
+                                errors));
+    }
+
+    @ExceptionHandler({
+        MethodArgumentTypeMismatchException.class,
+        HttpMessageNotReadableException.class,
+        MissingServletRequestParameterException.class
+    })
+    public ResponseEntity<ApiErrorResponse> malformed(Exception ex, HttpServletRequest req) {
+        if (ex instanceof HttpMessageNotReadableException) {
+            InvalidFormatException invalidFormat = findInvalidFormat((Throwable) ex);
+            if (invalidFormat != null) {
+                return invalidRequestField(invalidFormat, req);
+            }
+        }
+        String message = "Request body is missing or malformed";
+        if (ex instanceof MethodArgumentTypeMismatchException) {
+            message =
+                    "Invalid value for parameter '"
+                            + ((MethodArgumentTypeMismatchException) ex).getName()
+                            + "'";
+        } else if (ex instanceof MissingServletRequestParameterException) {
+            message =
+                    "Missing required parameter '"
+                            + ((MissingServletRequestParameterException) ex).getParameterName()
+                            + "'";
+        }
+        return build(HttpStatus.BAD_REQUEST, message, req);
+    }
+
+    private InvalidFormatException findInvalidFormat(Throwable ex) {
+        Throwable current = ex;
+        while (current != null) {
+            if (current instanceof InvalidFormatException) {
+                return (InvalidFormatException) current;
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private ResponseEntity<ApiErrorResponse> invalidRequestField(
+            InvalidFormatException ex, HttpServletRequest req) {
+        String field = null;
+        for (JsonMappingException.Reference reference : ex.getPath()) {
+            if (reference.getFieldName() != null) {
+                field = reference.getFieldName();
+            }
+        }
+        if (field == null) {
+            return build(HttpStatus.BAD_REQUEST, "Request body is missing or malformed", req);
+        }
+
+        Class<?> targetType = ex.getTargetType();
+        String typeName = targetType == null ? "requested type" : targetType.getSimpleName();
+        StringBuilder detail =
+                new StringBuilder("Invalid value '")
+                        .append(String.valueOf(ex.getValue()))
+                        .append("' for type ")
+                        .append(typeName);
+        if (targetType != null && targetType.isEnum()) {
+            Object[] values = targetType.getEnumConstants();
+            detail.append(". Allowed values: ");
+            for (int i = 0; i < values.length; i++) {
+                if (i > 0) {
+                    detail.append(", ");
+                }
+                detail.append(values[i]);
+            }
+        }
+
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        errors.put(field, detail.toString());
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400,
+                                "Bad Request",
+                                "Invalid value for request field",
+                                req.getRequestURI(),
+                                errors));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> method(
+            HttpRequestMethodNotSupportedException ex, HttpServletRequest req) {
+        return build(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Request method '" + ex.getMethod() + "' is not supported",
+                req);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> accessDenied(
+            AccessDeniedException ex, HttpServletRequest req) {
+        return build(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", req);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiErrorResponse> authenticationFailure(
+            AuthenticationException ex, HttpServletRequest req) {
+        return build(HttpStatus.UNAUTHORIZED, "Invalid username or password", req);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiErrorResponse> invalidParameter(
+            ConstraintViolationException ex, HttpServletRequest req) {
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            String property = violation.getPropertyPath().toString();
+            int separator = property.lastIndexOf('.');
+            if (separator >= 0) {
+                property = property.substring(separator + 1);
+            }
+            errors.put(property, violation.getMessage());
+        }
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400, "Bad Request", "Invalid request parameter", req.getRequestURI(), errors));
+    }
+
+    @ExceptionHandler(PropertyReferenceException.class)
+    public ResponseEntity<ApiErrorResponse> invalidSort(
+            PropertyReferenceException ex, HttpServletRequest req) {
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        errors.put("sort", "Unknown sort field: " + ex.getPropertyName());
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400, "Bad Request", "Invalid sort parameter", req.getRequestURI(), errors));
+    }
+
+    @ExceptionHandler(InvalidSortException.class)
+    public ResponseEntity<ApiErrorResponse> invalidSort(
+            InvalidSortException ex, HttpServletRequest req) {
+        Map<String, String> errors = new LinkedHashMap<String, String>();
+        errors.put("sort", ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(
+                        new ApiErrorResponse(
+                                400, "Bad Request", "Invalid sort parameter", req.getRequestURI(), errors));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> unexpected(Exception ex, HttpServletRequest req) {
+        LOGGER.error("Unhandled exception while processing {}", req.getRequestURI(), ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", req);
+    }
+
+    private ResponseEntity<ApiErrorResponse> build(
+            HttpStatus status, String message, HttpServletRequest req) {
+        return ResponseEntity.status(status)
+                .body(
+                        new ApiErrorResponse(
+                                status.value(), status.getReasonPhrase(), message, req.getRequestURI()));
+    }
+}
