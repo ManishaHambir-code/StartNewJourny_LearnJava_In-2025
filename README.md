@@ -116,10 +116,11 @@ All errors are produced by `GlobalExceptionHandler` in a single shape:
 
 | Status | When |
 | --- | --- |
-| 400 | Bean validation failure (details in `fieldErrors`) |
+| 400 | Bean validation failure (details in `fieldErrors`), malformed/missing JSON body, unparseable path variable |
 | 404 | `EmployeeNotFoundException` — unknown id |
+| 405 | HTTP method not supported for the path |
 | 409 | `DuplicateEmailException` — email already used |
-| 500 | Any other unhandled exception |
+| 500 | Any other unhandled exception (generic message; stack trace is logged server-side only) |
 
 ### curl examples
 

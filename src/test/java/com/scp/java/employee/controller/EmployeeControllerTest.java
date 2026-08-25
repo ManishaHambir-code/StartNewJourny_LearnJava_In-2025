@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -113,6 +114,35 @@ class EmployeeControllerTest {
         doNothing().when(employeeService).delete(1L);
 
         mockMvc.perform(delete("/api/employees/1")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void nonNumericIdReturns400() throws Exception {
+        mockMvc.perform(get("/api/employees/abc")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid value for parameter 'id'"));
+    }
+
+    @Test
+    void malformedJsonReturns400() throws Exception {
+        mockMvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON).content("{\"firstName\": \"A\", "))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Request body is missing or malformed"));
+    }
+
+    @Test
+    void unparseableDateReturns400() throws Exception {
+        mockMvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"firstName\":\"Manisha\",\"lastName\":\"Hambir\",\"email\":\"m@example.com\","
+                        + "\"department\":\"Engineering\",\"salary\":1,\"dateOfJoining\":\"01-01-2020\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Request body is missing or malformed"));
+    }
+
+    @Test
+    void unsupportedMethodReturns405() throws Exception {
+        mockMvc.perform(patch("/api/employees/1").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.message").value("Request method 'PATCH' is not supported"));
     }
 
     @Test
