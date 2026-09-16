@@ -145,3 +145,10 @@ curl -X DELETE http://localhost:8080/api/employees/1
 - `EmployeeControllerTest` — `@WebMvcTest` slice covering status codes, JSON payloads and error responses
 
 No database is needed to run the tests.
+
+## Student Learning Platform (microservices)
+
+A separate, Java 17 / Spring Boot 3 / Spring Cloud microservices project lives under
+[`student-learning-platform/`](student-learning-platform/README.md) (Eureka, API Gateway,
+student/course/enrollment/notification services, Kafka, Redis, JWT, Docker). It is built phase by
+phase; see its README for status and build instructions.
