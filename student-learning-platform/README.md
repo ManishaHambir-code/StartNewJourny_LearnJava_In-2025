@@ -37,7 +37,7 @@ and complete courses. Admins manage students, courses and enrollments.
 | --- | --- | --- |
 | `service-registry` | 8761 | Eureka server – service discovery |
 | `api-gateway` | 8080 | Single entry point; routes `/api/**` to services via Eureka (`lb://`) |
-| `student-service` | 8081 | Student CRUD, auth (JWT) – MySQL `slp_student_db` |
+| `student-service` | 8081 | Student CRUD ([README](student-service/README.md)), auth (JWT) – MySQL `slp_student_db` |
 | `course-service` | 8082 | Course CRUD, Redis caching – MySQL `slp_course_db` |
 | `enrollment-service` | 8083 | Enrollments; calls student/course via OpenFeign; Kafka producer – MySQL `slp_enrollment_db` |
 | `notification-service` | 8084 | Kafka consumer; simulates notifications |
@@ -152,7 +152,7 @@ Gateway routes:
 | # | Phase | Status |
 | --- | --- | --- |
 | 1 | Project setup (multi-module Maven, Spring Boot 3, Spring Cloud, Eureka, Gateway) | Done |
-| 2 | Student service CRUD | Pending |
+| 2 | Student service CRUD ([details](student-service/README.md)) | Done |
 | 3 | Course service CRUD | Pending |
 | 4 | Enrollment service (OpenFeign) | Pending |
 | 5 | Kafka events + notification consumer | Pending |
@@ -209,3 +209,23 @@ packages), Spring Framework 6, native observability (Micrometer) and GraalVM nat
 **What does `@SpringBootApplication` do?** It combines `@Configuration`, `@EnableAutoConfiguration`
 and `@ComponentScan`. Auto-configuration inspects the classpath and conditionally registers beans
 (`@ConditionalOnClass`, `@ConditionalOnMissingBean`), which is why adding a starter is often enough.
+
+---
+
+## Phase 2 — What was implemented
+
+Full Student CRUD in `student-service` (see [student-service/README.md](student-service/README.md) for
+API, DB schema, validation, exception mapping, sample payloads and testing details).
+
+* Layers: `controller` → `service`/`service.impl` → `repository` → `entity`, with `dto`, `mapper`,
+  `exception`, `config` packages; constructor injection everywhere.
+* `Student` entity (`students` table, unique email index, enum status, `@PrePersist`/`@PreUpdate` timestamps).
+* `StudentRequest` (Bean Validation: `@NotBlank`, `@NotNull`, `@Email`, `@Size`, `@Pattern`) and
+  `StudentResponse` (no password) – the entity never leaves the service layer.
+* `StudentNotFoundException` → 404, `EmailAlreadyExistsException` → 409, validation → 400 with a
+  field→message map, unknown errors → 500 without leaking internals (`@RestControllerAdvice`).
+* Pagination & sorting via `Pageable` (`?page=0&size=10&sort=firstName,asc`) wrapped in `PageResponse<T>`.
+* Swagger/OpenAPI (`springdoc`) with per-endpoint responses and request/response examples.
+* Tests: 31 in total – Mockito unit tests for the service (100 % line coverage, JaCoCo report wired
+  into the parent POM), `@WebMvcTest` controller tests, `@SpringBootTest` + H2 integration tests.
+* Verified against MySQL 8 (Docker), Swagger UI, Eureka registration and routing through the gateway.
